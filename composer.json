@@ -1,10 +1,10 @@
 {
     "name": "clembet/omnipay-getnet",
-    "description": "MOIP driver for Omnipay 3.0",
+    "description": "GetNet driver for Omnipay 3.0",
     "type": "library",
     "keywords": [
         "gateway",
-	"getnet",
+        "getnet",
         "omnipay",
         "payment"
     ],
