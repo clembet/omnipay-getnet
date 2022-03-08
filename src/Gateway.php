@@ -105,6 +105,12 @@ class Gateway extends AbstractGateway
             $ambiente = "k8vif92e";// ambiente de produção
         return "https://h.online-metrix.net/fp/tags.js?org_id=$ambiente&session_id=$device_id";
     }
+
+    public function parseResponse($data)
+    {
+        $request = $this->createRequest('\Omnipay\GetNet\Message\PurchaseRequest', []);
+        return new \Omnipay\GetNet\Message\Response($request, (array)$data);
+    }
 }
 
 ?>

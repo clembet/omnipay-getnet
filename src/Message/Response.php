@@ -34,7 +34,7 @@ class Response extends AbstractResponse
      *
      * @return string|null
      */
-    public function getTransactionReference()
+    public function getTransactionID()
     {
         if ($this->isSuccessful()) {
             if(isset($this->data['payment_id']))

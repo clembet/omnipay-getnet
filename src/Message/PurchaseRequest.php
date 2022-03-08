@@ -42,7 +42,7 @@ class PurchaseRequest extends AbstractRequest
         //https://developers.getnet.com.br/api#tag/Pagamento%2Fpaths%2F~1v1~1payments~1credit%2Fpost
         $purchaseObject = [
             'seller_id'         => $this->getSellerId(),
-            'amount'            => (int)round(($this->getAmount()*100.0), 0),
+            'amount'            => $this->getAmountInteger(),
             'currency'          => $this->getCurrency(),
             'order'             => [
                 'order_id'=>strval($this->getOrderId()),
