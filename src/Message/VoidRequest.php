@@ -25,7 +25,6 @@ class VoidRequest extends AbstractRequest   // está dando  erro para vendas com
     public function getData()
     {
         $this->validate('transactionId');
-        //$data = parent::getData();
         $data = [];
 
         return $data;
@@ -45,11 +44,10 @@ class VoidRequest extends AbstractRequest   // está dando  erro para vendas com
         $headers = [
             'Accept'        => 'application/json, text/plain, */*',
             'content-type'  => 'application/json',//application/x-www-form-urlencoded
-            'Authorization' => "Bearer ".$this->getAuthorization(),
+            'Authorization' => $this->getAuthorization(),
 
         ];
 
-        //print_r([$method, $url, $headers, json_encode($data)]);exit();
         $response = $this->httpClient->request(
             $method,
             $url,
@@ -57,8 +55,6 @@ class VoidRequest extends AbstractRequest   // está dando  erro para vendas com
             $this->toJSON($data)
             //http_build_query($data, '', '&')
         );
-        //print_r($response);
-        //print_r($data);
 
         if ($response->getStatusCode() != 200 && $response->getStatusCode() != 201 && $response->getStatusCode() != 400) {
             $array = [
@@ -73,7 +69,6 @@ class VoidRequest extends AbstractRequest   // está dando  erro para vendas com
 
         $json = $response->getBody()->getContents();
         $array = @json_decode($json, true);
-        //print_r($array);
 
         return $this->response = $this->createResponse(@$array);
     }

@@ -19,6 +19,11 @@ class AccessTokenResponse extends AbstractResponse
         return @$this->data['token_type'];
     }
 
+    public function getAuthorization()
+    {
+        return self::getTokenType().' '.self::getAccessToken();
+    }
+
 }
 
 ?>

@@ -22,20 +22,17 @@ class AccessTokenRequest extends AbstractRequest
         $url = $this->getEndpoint();
         $headers = [
             'Accept'        => 'application/json, text/plain, */*',
-            'Authorization' => 'Basic '.base64_encode($this->getClientId().':'.$this->getClientSecret()),
             'content-type'  => 'application/x-www-form-urlencoded',
+            'Authorization' => 'Basic '.base64_encode($this->getClientId().':'.$this->getClientSecret()),
         ];
 
-        //print_r([$method, $url, $headers, json_encode($data)]);exit();
         $response = $this->httpClient->request(
             $method,
             $url,
             $headers,
-            $this->toJSON($data)
-            //http_build_query($data, '', '&')
+            //$this->toJSON($data)
+            http_build_query($data, '', '&')
         );
-        //print_r($response);
-        //print_r($data);
 
         if ($response->getStatusCode() != 200 && $response->getStatusCode() != 201 && $response->getStatusCode() != 400) {
             $array = [
@@ -50,7 +47,6 @@ class AccessTokenRequest extends AbstractRequest
 
         $json = $response->getBody()->getContents();
         $array = @json_decode($json, true);
-        //print_r($array);
 
         return $this->response = $this->createResponse(@$array);
     }

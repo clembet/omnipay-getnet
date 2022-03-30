@@ -25,11 +25,10 @@ abstract class AbstractRequest extends \Omnipay\Common\Message\AbstractRequest
         $headers = [
             'Accept'        => 'application/json, text/plain, */*',
             'content-type'  => 'application/json',//application/x-www-form-urlencoded
-            'Authorization' => "Bearer ".$this->getAuthorization(),
+            'Authorization' => $this->getAuthorization(),
 
         ];
 
-        //print_r([$method, $url, $headers, json_encode($data)]);exit();
         $response = $this->httpClient->request(
             $method,
             $url,
@@ -37,8 +36,6 @@ abstract class AbstractRequest extends \Omnipay\Common\Message\AbstractRequest
             $this->toJSON($data)
             //http_build_query($data, '', '&')
         );
-        //print_r($response);
-        //print_r($data);
 
         if ($response->getStatusCode() != 200 && $response->getStatusCode() != 201 && $response->getStatusCode() != 400) {
             $array = [
@@ -53,7 +50,6 @@ abstract class AbstractRequest extends \Omnipay\Common\Message\AbstractRequest
 
         $json = $response->getBody()->getContents();
         $array = @json_decode($json, true);
-        //print_r($array);
 
         return $this->response = $this->createResponse(@$array);
     }
@@ -242,13 +238,14 @@ abstract class AbstractRequest extends \Omnipay\Common\Message\AbstractRequest
         return str_replace('\\/', '/', json_encode($data, $options));
     }
 
-    public function getCardToken()
+    public function setShippingPrice($value)
     {
-        return $this->getParameter('cardToken');
+        return $this->setParameter('shipping_price', $value);
     }
-    public function setCardToken($value)
+
+    public function getShippingPrice()
     {
-        $this->setParameter('cardToken', $value);
+        return (int)round((@($this->getParameter('shipping_price')*100.0)), 0);
     }
 
     public function getTransactionID()
@@ -263,7 +260,9 @@ abstract class AbstractRequest extends \Omnipay\Common\Message\AbstractRequest
 
     protected function createResponse($data)
     {
-        return $this->response = new Response($this, $data);
+        $this->response = new Response($this, $data);
+        $this->response->setTestMode($this->getTestMode());
+        return $this->response;
     }
 
     protected function getEndpoint()
@@ -273,8 +272,12 @@ abstract class AbstractRequest extends \Omnipay\Common\Message\AbstractRequest
         return  "{$endPoint}/v{$version}/{$this->getResource()}";
     }
 
-    /*public function getClientIp()
+    public function getClientIp()
     {
+        $ip = $this->getParameter('clientIp');
+        if($ip)
+            return $ip;
+
         $ip = "127.0.0.1";
         if(!empty($_SERVER['HTTP_CLIENT_IP'])){
             //ip from share internet
@@ -293,7 +296,7 @@ abstract class AbstractRequest extends \Omnipay\Common\Message\AbstractRequest
         }
 
         return $ip;
-    }*/
+    }
 
     public function getItemData()
     {
@@ -320,7 +323,7 @@ abstract class AbstractRequest extends \Omnipay\Common\Message\AbstractRequest
 
     public function getDataCreditCard()
     {
-        $this->validate('cardToken', 'customer', 'customer_id', 'currency');
+        $this->validate('card', 'customer', 'customer_id', 'currency');
 
         //$payer = $this->getPayerData();
         $card = $this->getCard();
@@ -356,18 +359,20 @@ abstract class AbstractRequest extends \Omnipay\Common\Message\AbstractRequest
                 ],
             ],
             "shippings" => [
-                "phone_number" => $card->getPhone(),
-                "shipping_amount" => $this->Shipping,
-                "address" => [
-                    "street"=> $customer->getShippingAddress1(),
-                    "number"=> $customer->getShippingNumber(),
-                    "complement"=> $customer->getShippingAddress2(),
-                    "district"=> $customer->getShippingDistrict(),
-                    "city"=> $customer->getShippingCity(),
-                    "state"=> $customer->getShippingState(),
-                    "country"=> "Brasil",
-                    "postal_code"=> $customer->getShippingPostcode()
-                ],
+                [
+                    "phone_number" => $card->getPhone(),
+                    "shipping_amount" => (int)($this->getShippingPrice()*100.0),
+                    "address" => [
+                        "street"=> $customer->getShippingAddress1(),
+                        "number"=> $customer->getShippingNumber(),
+                        "complement"=> $customer->getShippingAddress2(),
+                        "district"=> $customer->getShippingDistrict(),
+                        "city"=> $customer->getShippingCity(),
+                        "state"=> $customer->getShippingState(),
+                        "country"=> "Brasil",
+                        "postal_code"=> $customer->getShippingPostcode()
+                    ],
+                ]
             ],
             "credit"=> [
                 "delayed"=> true, // true => faz a autorização, false => faz autorização + captura
@@ -379,7 +384,7 @@ abstract class AbstractRequest extends \Omnipay\Common\Message\AbstractRequest
                 "soft_descriptor"=> $this->getSoftDescriptor(),
                 //"dynamic_mcc": 1799, //Campo utilizado para sinalizar a transação com outro Merchant Category Code (Código da Categoria do Estabelecimento) diferente do cadastrado.
                 "card"=> [
-                  "number_token"=> $this->getCardToken(),
+                  "number_token"=> $card->getNumberToken(),
                   //"bin"=> $card->getBin(),
                   "security_code"=> $card->getCvv(),
                   "expiration_month"=> sprintf("%02d", $card->getExpiryMonth()),
@@ -416,7 +421,7 @@ abstract class AbstractRequest extends \Omnipay\Common\Message\AbstractRequest
                     //"product_type" => "",//physical_goods, digital_content, digital_goods, digital_physical, cash_carry, gift_card, service
                 ],
                 "boleto"=> [
-                  "document_number"=> $customer->getHolderDocumentNumber(),
+                  "document_number"=> $customer->getDocumentNumber(),
                   "expiration_date"=> date('d/m/Y', strtotime($this->getDueDate())),
                   "instructions"=> "Não receber após o vencimento",
                   "provider"=> "santander"
@@ -425,7 +430,7 @@ abstract class AbstractRequest extends \Omnipay\Common\Message\AbstractRequest
                   "first_name"=> $customer->getFirstName(),
                   "name"=> $customer->getName(),
                   "document_type"=> "CPF",
-                  "document_number"=> $customer->getHolderDocumentNumber(),
+                  "document_number"=> $customer->getDocumentNumber(),
                   "billing_address"=> [
                     "street"=> $customer->getShippingAddress1(),
                     "number"=> $customer->getShippingNumber(),

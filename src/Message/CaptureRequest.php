@@ -33,7 +33,7 @@ class CaptureRequest extends AbstractRequest
         $headers = [
             'Accept'        => 'application/json, text/plain, */*',
             'content-type'  => 'application/json',//application/x-www-form-urlencoded
-            'Authorization' => "Bearer ".$this->getAuthorization(),
+            'Authorization' => $this->getAuthorization(),
 
         ];
 

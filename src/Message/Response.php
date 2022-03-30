@@ -12,6 +12,9 @@ use Omnipay\Common\Message\RedirectResponseInterface;
  */
 class Response extends AbstractResponse
 {
+    protected $liveEndpoint = 'https://api.getnet.com.br';
+    protected $testEndpoint = 'https://api-sandbox.getnet.com.br';
+    protected $isTestMode = false;
     /**
      * Is the transaction successful?
      *
@@ -23,10 +26,21 @@ class Response extends AbstractResponse
         if (($status_code==200)||($status_code==201)||($status_code==202))
             return true;
 
-        if (isset($this->data['payment_id']) && isset($this->data['credit']['authorization_code']))
+        if (isset($this->data['payment_id']) && isset($this->data['status'])  ||
+            isset($this->data['payment_response']['payment_id']))
             return true;
 
         return false;
+    }
+
+    public function getTestMode()
+    {
+        return $this->isTestMode;
+    }
+
+    public function setTestMode($val)
+    {
+        $this->isTestMode = $val;
     }
 
     /**
@@ -39,6 +53,17 @@ class Response extends AbstractResponse
         if ($this->isSuccessful()) {
             if(isset($this->data['payment_id']))
                 return @$this->data['payment_id']; //Código de identificação do pagamento.
+            // tem ['credit']['transaction_id'] //Código de transação.
+        }
+
+        return null;
+    }
+
+    public function getBoletoID()
+    {
+        if ($this->isSuccessful()) {
+            if(isset($this->data['boleto']['boleto_id']))
+                return @$this->data['boleto']['boleto_id']; //Código de identificação do pagamento.
             // tem ['credit']['transaction_id'] //Código de transação.
         }
 
@@ -77,7 +102,10 @@ class Response extends AbstractResponse
     {
         $status = null;
         if(isset($this->data['status']))
-            $status = @$this->data['status'];
+            return @$this->data['status'];
+
+        if(isset($this->data['payment_response']['status']))
+            return @$this->data['payment_response']['status'];
 
         return $status;
     }
@@ -110,12 +138,14 @@ class Response extends AbstractResponse
     {
         $data = $this->getData();
         $boleto = array();
-        $boleto['boleto_url'] = @$data['boleto']['links'][0]['href']; //'https://api-homologacao.getnet.com.br/v1/payments/boleto/{payment_id}/html'
-        $boleto['boleto_url_pdf'] = @$data['boleto']['links'][0]['href'];  //'https://api-homologacao.getnet.com.br/v1/payments/boleto/{payment_id}/pdf'
+        $payment_id = @$data['payment_id'];
+        $endpoint = $this->getTestMode()?$this->testEndpoint:$this->liveEndpoint;
+        $boleto['boleto_url'] = "$endpoint/v1/payments/boleto/$payment_id/html";//@$data['boleto']['links'][0]['href']; //'https://api-sandbox.getnet.com.br/v1/payments/boleto/{payment_id}/html'
+        $boleto['boleto_url_pdf'] = "$endpoint/v1/payments/boleto/$payment_id/pdf";//@$data['boleto']['links'][0]['href'];  //'https://api-sandbox.getnet.com.br/v1/payments/boleto/{payment_id}/pdf'
         $boleto['boleto_barcode'] = @$data['boleto']['typeful_line'];
         $boleto['boleto_expiration_date'] = @$data['boleto']['expiration_date'];
         $boleto['boleto_valor'] = (@$data['amount']*1.0)/100.0;
-        $boleto['boleto_transaction_id'] = @$data['payment_id'];
+        $boleto['boleto_transaction_id'] = @$data['boleto']['boleto_id'];//@$data['payment_id']
         //@$this->setTransactionReference(@$data['transaction_id']);
 
         return $boleto;
@@ -135,8 +165,9 @@ class Response extends AbstractResponse
 
     public function createPixImg($pix)
     {
+        include_once(dirname(__FILE__)."/phpqrcode.php");
         ob_start();
-            QRCode::png($pix, null,'M',5); //https://github.com/renatomb/php_qrcode_pix
+            \QRCode::png($pix, null,'M',5); //https://github.com/renatomb/php_qrcode_pix
             $imageString = base64_encode( ob_get_contents() );
         ob_end_clean();
 

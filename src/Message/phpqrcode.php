@@ -1,4 +1,4 @@
-<?php namespace Omnipay\GetNet\Message;
+<?php
 
 /*
  * PHP QR Code encoder
