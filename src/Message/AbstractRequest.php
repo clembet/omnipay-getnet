@@ -4,46 +4,65 @@ namespace Omnipay\GetNet\Message;
 
 abstract class AbstractRequest extends \Omnipay\Common\Message\AbstractRequest
 {
-    protected $liveEndpoint = 'https://api.getnet.com.br/';
+    protected $liveEndpoint = 'https://api.getnet.com.br';
     protected $testEndpoint = 'https://api-sandbox.getnet.com.br';
+    protected $requestMethod = 'POST';
+    protected $version = 1;
+    protected $resource = '';
 
     public function getData()
     {
-        $data = $this->getExternalReference();
-        return $data;
+        $this->validate('seller_id', 'client_id', 'client_secret', 'authorization');
+        return [];
     }
 
     public function sendData($data)
     {
+        $this->validate('authorization');
+        $method = $this->requestMethod;
         $url = $this->getEndpoint();
+
         $headers = [
-            'Accept'=> 'application/json, text/plain, */*',
-            'content-type' => 'application/json',
-            'authorization'     => $this->getAuthorization(),
+            'Accept'        => 'application/json, text/plain, */*',
+            'content-type'  => 'application/json',//application/x-www-form-urlencoded
+            'Authorization' => "Bearer ".$this->getAuthorization(),
 
         ];
+
+        //print_r([$method, $url, $headers, json_encode($data)]);exit();
         $response = $this->httpClient->request(
-            'POST',
+            $method,
             $url,
             $headers,
             $this->toJSON($data)
+            //http_build_query($data, '', '&')
         );
+        //print_r($response);
+        //print_r($data);
 
-        $payload = $this->decode($response->getBody());
+        if ($response->getStatusCode() != 200 && $response->getStatusCode() != 201 && $response->getStatusCode() != 400) {
+            $array = [
+                'error' => [
+                    'code' => $response->getStatusCode(),
+                    'message' => $response->getReasonPhrase()
+                ]
+            ];
 
-        return $this->response = $this->createResponse(@$payload);
+            return $this->response = $this->createResponse($array);
+        }
+
+        $json = $response->getBody()->getContents();
+        $array = @json_decode($json, true);
+        //print_r($array);
+
+        return $this->response = $this->createResponse(@$array);
     }
 
-    public function setExternalReference($value)
+    public function __get($name)
     {
-        return $this->setParameter('external_reference', $value);
+        return $this->getParameter($name);
     }
-
-    public function getExternalReference()
-    {
-        return $this->getParameter('external_reference');
-    }
-
+    
     public function getSellerId()
     {
         return $this->getParameter('seller_id');
@@ -53,6 +72,60 @@ abstract class AbstractRequest extends \Omnipay\Common\Message\AbstractRequest
     {
         return $this->setParameter('seller_id', $value);
     }
+
+    public function getClientId()
+    {
+        return $this->getParameter('client_id');
+    }
+
+    public function setClientId($value)
+    {
+        return $this->setParameter('client_id', $value);
+    }
+
+    public function getClientSecret()
+    {
+        return $this->getParameter('client_secret');
+    }
+
+    public function setClientSecret($value)
+    {
+        return $this->setParameter('client_secret', $value);
+    }
+
+    public function setAccessToken($value)
+    {
+        return $this->setParameter('access_token', $value);
+    }
+
+    public function getAccessToken()
+    {
+        return $this->getParameter('access_token');
+    }
+
+    public function setAuthorization($value)
+    {
+        return $this->setParameter('authorization', $value);
+    }
+
+    public function getAuthorization()
+    {
+        return $this->getParameter('authorization');
+    }
+
+    public function setSessionId($value)// Caracteres permitidos [a-z], [A-Z], 0-9, _, - {tamanho: de 12 a 80 caracteres}
+    {
+        return $this->setParameter('session_id', $value);
+    }
+
+    public function getSessionId()
+    {
+        return $this->getParameter('session_id');
+    }
+
+
+
+
 
     public function getOrderId()
     {
@@ -64,25 +137,7 @@ abstract class AbstractRequest extends \Omnipay\Common\Message\AbstractRequest
         return $this->setParameter('order_id', $value);
     }
 
-    public function getDeviceId()
-    {
-        return $this->getParameter('device_id');
-    }
-
-    public function setDeviceId($value)
-    {
-        return $this->setParameter('device_id', $value);
-    }
-
-    public function getAuthorization()
-    {
-        return $this->getParameter('authorization');
-    }
-
-    public function setAuthorization($value)
-    {
-        return $this->setParameter('authorization', $value);
-    }
+    
 
     public function getCustomer()
     {
@@ -102,6 +157,15 @@ abstract class AbstractRequest extends \Omnipay\Common\Message\AbstractRequest
     public function setCustomerId($value)
     {
         return $this->setParameter('customer_id', $value);
+    }    
+
+    public function setInstallments($value)
+    {
+        return $this->setParameter('installments', $value);
+    }
+    public function getInstallments()
+    {
+        return $this->getParameter('installments');
     }
 
     public function setSoftDescriptor($value)
@@ -150,14 +214,24 @@ abstract class AbstractRequest extends \Omnipay\Common\Message\AbstractRequest
         return $this->setParameter('dueDate', $value);
     }
 
-    protected function getEndpoint()
-    {
-        return $this->getTestMode() ? $this->testEndpoint : $this->liveEndpoint;
-    }
-
     protected function decode($data)
     {
         return json_decode($data, true);
+    }
+
+    protected function getVersion()
+    {
+        return $this->version;
+    }
+
+    protected  function getResource()
+    {
+        return $this->resource;
+    }
+
+    protected function getMethod()
+    {
+        return $this->requestMethod;
     }
 
     public function toJSON($data, $options = 0)
@@ -168,7 +242,38 @@ abstract class AbstractRequest extends \Omnipay\Common\Message\AbstractRequest
         return str_replace('\\/', '/', json_encode($data, $options));
     }
 
-    public function getIpAddress()
+    public function getCardToken()
+    {
+        return $this->getParameter('cardToken');
+    }
+    public function setCardToken($value)
+    {
+        $this->setParameter('cardToken', $value);
+    }
+
+    public function getTransactionID()
+    {
+        return $this->getParameter('transactionId');
+    }
+
+    public function setTransactionID($value)
+    {
+        return $this->setParameter('transactionId', $value);
+    }
+
+    protected function createResponse($data)
+    {
+        return $this->response = new Response($this, $data);
+    }
+
+    protected function getEndpoint()
+    {
+        $version = $this->getVersion();
+        $endPoint = ($this->getTestMode()?$this->testEndpoint:$this->liveEndpoint);
+        return  "{$endPoint}/v{$version}/{$this->getResource()}";
+    }
+
+    /*public function getClientIp()
     {
         $ip = "127.0.0.1";
         if(!empty($_SERVER['HTTP_CLIENT_IP'])){
@@ -188,6 +293,162 @@ abstract class AbstractRequest extends \Omnipay\Common\Message\AbstractRequest
         }
 
         return $ip;
+    }*/
+
+    public function getItemData()
+    {
+        $data = [];
+        $items = $this->getItems();
+
+        if ($items) {
+            foreach ($items as $n => $item) {
+                $item_array = [];
+                $item_array['id'] = $n+1;
+                $item_array['title'] = $item->getName();
+                $item_array['description'] = $item->getName();
+                //$item_array['category_id'] = $item->getCategoryId();
+                $item_array['quantity'] = (int)$item->getQuantity();
+                //$item_array['currency_id'] = $this->getCurrency();
+                $item_array['unit_price'] = (double)($this->formatCurrency($item->getPrice()));
+
+                array_push($data, $item_array);
+            }
+        }
+
+        return $data;
+    }
+
+    public function getDataCreditCard()
+    {
+        $this->validate('cardToken', 'customer', 'customer_id', 'currency');
+
+        //$payer = $this->getPayerData();
+        $card = $this->getCard();
+        $customer = $this->getCustomer();
+
+        $data = [
+            "seller_id" => $this->getSellerId(),// opcional
+            "amount" => $this->getAmountInteger(),
+            "currency" => $this->getCurrency(),
+            "order" => [
+                "order_id" => $this->getOrderId(),
+                //"sales_tax" => 0, // valor dos impostos
+                //"product_type" => "",//physical_goods, digital_content, digital_goods, digital_physical, cash_carry, gift_card, service
+            ],
+            "customer" => [
+                "customer_id" = $this->getCustomerId(),
+                "first_name" = $card->getFirstName(),
+                "last_name" = $card->getLastName(),
+                "name" = $card->getName(),
+                "email" = $card->getEmail(),
+                "phone_number" = $card->getPhone(),
+                "document_type" = "CPF",
+                "document_number" = $card->getHolderDocumentNumber(),
+                "billing_address" => [
+                    "street"=> $customer->getBillingAddress1(),
+                    "number"=> $customer->getBillingNumber(),
+                    "complement"=> $customer->getBillingAddress2(),
+                    "district"=> $customer->getBillingDistrict(),
+                    "city"=> $customer->getBillingCity(),
+                    "state"=> $customer->getBillingState(),
+                    "country"=> "Brasil",
+                    "postal_code"=> $customer->getBillingPostcode()
+                ],
+            ],
+            "device" => [ // necessário para antifraude
+                "ip_address" => $this->getClientIp(),
+                "device_id" => $this->getSessionId(),
+            ],
+            "shippings" => [
+                "phone_number" => $card->getPhone(),
+                "shipping_amount" => $this->Shipping,
+                "address" => [
+                    "street"=> $customer->getShippingAddress1(),
+                    "number"=> $customer->getShippingNumber(),
+                    "complement"=> $customer->getShippingAddress2(),
+                    "district"=> $customer->getShippingDistrict(),
+                    "city"=> $customer->getShippingCity(),
+                    "state"=> $customer->getShippingState(),
+                    "country"=> "Brasil",
+                    "postal_code"=> $customer->getShippingPostcode()
+                ],
+            ],
+            "credit"=> [
+                "delayed"=> true, // true => faz a autorização, false => faz autorização + captura
+                //'authenticated'=>'false', // não habilitar
+                "save_card_data"=> false,
+                //'pre_authorization'=>'false', // só habilitar o campo quando for fazer uma pré autorização
+                "transaction_type"=> $this->getInstallments()>1?'INSTALL_NO_INTEREST':'FULL', // FULL, INSTALL_NO_INTEREST, INSTALL_WITH_INTEREST
+                "number_installments"=> $this->getInstallments(),
+                "soft_descriptor"=> $this->getSoftDescriptor(),
+                //"dynamic_mcc": 1799, //Campo utilizado para sinalizar a transação com outro Merchant Category Code (Código da Categoria do Estabelecimento) diferente do cadastrado.
+                "card"=> [
+                  "number_token"=> $this->getCardToken(),
+                  //"bin"=> $card->getBin(),
+                  "security_code"=> $card->getCvv(),
+                  "expiration_month"=> sprintf("%02d", $card->getExpiryMonth()),
+                  "expiration_year"=> substr(strval($card->getExpiryYear()), -2),
+                  "cardholder_name"=> $card->getName()
+                ]
+            ],
+        ];
+
+        return $data;
+    }
+
+    public function getDataBoleto() //https://developers.getnet.com.br/api#tag/Pagamento%2Fpaths%2F~1v1~1payments~1boleto%2Fpost
+    {
+        //$payer = $this->getPayerData();
+        $customer = $this->getCustomer();
+
+        $data = [
+                "seller_id" => $this->getSellerId(),// opcional
+                "amount" => $this->getAmountInteger(),
+                "currency" => $this->getCurrency(),
+                "order" => [
+                    "order_id" => $this->getOrderId(),
+                    //"sales_tax" => 0, // valor dos impostos
+                    //"product_type" => "",//physical_goods, digital_content, digital_goods, digital_physical, cash_carry, gift_card, service
+                ],
+                "boleto"=> [
+                  "document_number"=> $customer->getHolderDocumentNumber(),
+                  "expiration_date"=> $this->getDueDate()->date_format("dd/mm/aaaa"),//TODO: formatar data
+                  "instructions"=> "Não receber após o vencimento",
+                  "provider"=> "santander"
+                ],
+                "customer"=> [
+                  "first_name"=> $customer->getFirstName(),
+                  "name"=> $customer->getName(),
+                  "document_type"=> "CPF",
+                  "document_number"=> $customer->getHolderDocumentNumber(),
+                  "billing_address"=> [
+                    "street"=> $customer->getShippingAddress1(),
+                    "number"=> $customer->getShippingNumber(),
+                    "complement"=> $customer->getShippingAddress2(),
+                    "district"=> $customer->getShippingDistrict(),
+                    "city"=> $customer->getShippingCity(),
+                    "state"=> $customer->getShippingState(),
+                    "postal_code"=> $customer->getShippingPostcode()
+                    ]
+                ],
+        ];
+
+        return $data;
+    }
+
+    public function getDataPix() //https://developers.getnet.com.br/api#tag/PIX
+    {
+        //$payer = $this->getPayerData();
+        $customer = $this->getCustomer();
+
+        $data = [
+            "amount"=> $this->getAmountInteger(),
+            "currency"=> "BRL",
+            "order_id"=> $this->getOrderId(),
+            "customer_id"=> $this->getCustomerId()
+        ];
+
+        return $data;
     }
 }
 

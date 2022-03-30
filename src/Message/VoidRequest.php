@@ -1,29 +1,52 @@
 <?php namespace Omnipay\GetNet\Message;
 
-class AccessTokenRequest extends AbstractRequest
+/**
+ *  O Cancelamento é aplicavel a transações do mesmo dia sendo autorizadas ou aprovadas
+ *  O Estono é aplicável para transações onde virou o dia, seguindo o processo do adquirente
+ * <code>
+ *   // Do a refund transaction on the gateway
+ *   $transaction = $gateway->void(array(
+ *       'transactionId'     => $transactionCode,
+ *   ));
+ *
+ *   $response = $transaction->send();
+ *   if ($response->isSuccessful()) {
+ *   }
+ * </code>
+ */
+
+class VoidRequest extends AbstractRequest   // está dando  erro para vendas com cartao parcelado, não permitindo estornar individualmente o pagamento
 {
+    //https://developers.getnet.com.br/api#tag/Pagamento%2Fpaths%2F~1v1~1payments~1credit~1%7Bpayment_id%7D~1cancel%2Fpost
+    protected $resource = 'payments/credit';
     protected $requestMethod = 'POST';
-    protected $version = 2;
-    protected $resource = 'token';
+
 
     public function getData()
     {
-        $this->validate('client_id', 'client_secret');
+        $this->validate('transactionId');
+        //$data = parent::getData();
+        $data = [];
 
-        return [
-            'scope'     => 'oob',
-            'grant_type' => 'client_credentials'
-        ];
+        return $data;
     }
 
     public function sendData($data)
     {
+        $this->validate('transactionId');
+
         $method = $this->requestMethod;
-        $url = $this->getEndpoint();
+        $url = sprintf(
+            "%s/%s/cancel",
+            $this->getEndpoint(),
+            $this->getTransactionID()
+        );
+
         $headers = [
             'Accept'        => 'application/json, text/plain, */*',
-            'Authorization' => 'Basic '.base64_encode($this->getClientId().':'.$this->getClientSecret()),
-            'content-type'  => 'application/x-www-form-urlencoded',
+            'content-type'  => 'application/json',//application/x-www-form-urlencoded
+            'Authorization' => "Bearer ".$this->getAuthorization(),
+
         ];
 
         //print_r([$method, $url, $headers, json_encode($data)]);exit();
@@ -54,21 +77,4 @@ class AccessTokenRequest extends AbstractRequest
 
         return $this->response = $this->createResponse(@$array);
     }
-
-    protected function getEndpoint()
-    {
-        return $this->getTestMode() ? $this->testEndpoint . '/auth/oauth/v2/token' : $this->liveEndpoint . '/auth/oauth/v2/token';
-    }
-
-    protected function createResponse($data)
-    {
-        return $this->response = new AccessTokenResponse($this, $data);
-    }
-
-    protected function decode($data)
-    {
-        return json_decode($data, true);
-    }
 }
-
-?>

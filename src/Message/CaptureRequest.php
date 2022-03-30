@@ -1,29 +1,40 @@
 <?php namespace Omnipay\GetNet\Message;
 
-class AccessTokenRequest extends AbstractRequest
+class CaptureRequest extends AbstractRequest
 {
+    //https://developers.getnet.com.br/api#tag/Pagamento%2Fpaths%2F~1v1~1payments~1credit~1%7Bpayment_id%7D~1confirm%2Fpost
+    protected $resource = 'payments/credit';
     protected $requestMethod = 'POST';
-    protected $version = 2;
-    protected $resource = 'token';
+
 
     public function getData()
     {
-        $this->validate('client_id', 'client_secret');
+        $this->validate('transactionId', 'amount');
+        //$data = parent::getData();
 
-        return [
-            'scope'     => 'oob',
-            'grant_type' => 'client_credentials'
+        $data = [
+            "amount"=> $this->getAmountInteger()
         ];
+
+        return $data;
     }
 
     public function sendData($data)
     {
+        $this->validate('transactionId', 'amount');
+
         $method = $this->requestMethod;
-        $url = $this->getEndpoint();
+        $url = sprintf(
+            "%s/%s/confirm",
+            $this->getEndpoint(),
+            $this->getTransactionID()
+        );
+
         $headers = [
             'Accept'        => 'application/json, text/plain, */*',
-            'Authorization' => 'Basic '.base64_encode($this->getClientId().':'.$this->getClientSecret()),
-            'content-type'  => 'application/x-www-form-urlencoded',
+            'content-type'  => 'application/json',//application/x-www-form-urlencoded
+            'Authorization' => "Bearer ".$this->getAuthorization(),
+
         ];
 
         //print_r([$method, $url, $headers, json_encode($data)]);exit();
@@ -54,21 +65,4 @@ class AccessTokenRequest extends AbstractRequest
 
         return $this->response = $this->createResponse(@$array);
     }
-
-    protected function getEndpoint()
-    {
-        return $this->getTestMode() ? $this->testEndpoint . '/auth/oauth/v2/token' : $this->liveEndpoint . '/auth/oauth/v2/token';
-    }
-
-    protected function createResponse($data)
-    {
-        return $this->response = new AccessTokenResponse($this, $data);
-    }
-
-    protected function decode($data)
-    {
-        return json_decode($data, true);
-    }
 }
-
-?>

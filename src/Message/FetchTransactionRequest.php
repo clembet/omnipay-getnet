@@ -1,29 +1,38 @@
 <?php namespace Omnipay\GetNet\Message;
 
-class AccessTokenRequest extends AbstractRequest
+class FetchTransactionRequest extends AbstractRequest
 {
-    protected $requestMethod = 'POST';
-    protected $version = 2;
-    protected $resource = 'token';
+    //https://developers.getnet.com.br/api#tag/QRCode%2Fpaths%2F~1v1~1payments~1qrcode%2Fpost
+    protected $resource = 'payments/credit';
+    protected $requestMethod = 'GET';
 
+    /**
+     * Get the raw data array for this message. The format of this varies from gateway to
+     * gateway, but will usually be either an associative array, or a SimpleXMLElement.
+     *
+     * @return mixed
+     */
     public function getData()
     {
-        $this->validate('client_id', 'client_secret');
-
-        return [
-            'scope'     => 'oob',
-            'grant_type' => 'client_credentials'
-        ];
+        return parent::getData();
     }
 
     public function sendData($data)
     {
+        $this->validate('transactionId');
+
         $method = $this->requestMethod;
-        $url = $this->getEndpoint();
+        $url = sprintf(
+            "%s/%s",
+            $this->getEndpoint(),
+            $this->getTransactionID()
+        );
+
         $headers = [
             'Accept'        => 'application/json, text/plain, */*',
-            'Authorization' => 'Basic '.base64_encode($this->getClientId().':'.$this->getClientSecret()),
-            'content-type'  => 'application/x-www-form-urlencoded',
+            'content-type'  => 'application/json',//application/x-www-form-urlencoded
+            'Authorization' => "Bearer ".$this->getAuthorization(),
+
         ];
 
         //print_r([$method, $url, $headers, json_encode($data)]);exit();
@@ -31,7 +40,7 @@ class AccessTokenRequest extends AbstractRequest
             $method,
             $url,
             $headers,
-            $this->toJSON($data)
+            //$this->toJSON($data)
             //http_build_query($data, '', '&')
         );
         //print_r($response);
@@ -55,20 +64,4 @@ class AccessTokenRequest extends AbstractRequest
         return $this->response = $this->createResponse(@$array);
     }
 
-    protected function getEndpoint()
-    {
-        return $this->getTestMode() ? $this->testEndpoint . '/auth/oauth/v2/token' : $this->liveEndpoint . '/auth/oauth/v2/token';
-    }
-
-    protected function createResponse($data)
-    {
-        return $this->response = new AccessTokenResponse($this, $data);
-    }
-
-    protected function decode($data)
-    {
-        return json_decode($data, true);
-    }
 }
-
-?>

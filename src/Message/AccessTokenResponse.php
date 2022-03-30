@@ -1,6 +1,4 @@
-<?php
-
-namespace Omnipay\GetNet\Message;
+<?php namespace Omnipay\GetNet\Message;
 
 use Omnipay\Common\Message\AbstractResponse;
 
