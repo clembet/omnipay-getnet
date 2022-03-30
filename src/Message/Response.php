@@ -112,26 +112,26 @@ class Response extends AbstractResponse
 
     public function isPaid()
     {
-        $status = $this->getStatus();
-        return (strcmp($status, "APPROVED")==0||strcmp($status, "CONFIRMED")==0||strcmp($status, "PAID")==0);
+        $status = @strtolower($this->getStatus());
+        return (strcmp($status, "approved")==0||strcmp($status, "confirmed")==0||strcmp($status, "paid")==0);
     }
 
     public function isAuthorized()
     {
-        $status = $this->getStatus();
-        return strcmp($status, "AUTHORIZED")==0;
+        $status = @strtolower($this->getStatus());
+        return strcmp($status, "authorized")==0;
     }
 
     public function isPending()
     {
-        $status = $this->getStatus();
-        return (strcmp($status, "PENDING")==0||strcmp($status, "WAITING")==0);
+        $status = @strtolower($this->getStatus());
+        return (strcmp($status, "pending")==0||strcmp($status, "waiting")==0);
     }
 
     public function isVoided()
     {
-        $status = $this->getStatus();
-        return strcmp($status, "CANCELED")==0;
+        $status = @strtolower($this->getStatus());
+        return strcmp($status, "canceled")==0;
     }
 
     public function getBoleto() // https://developers.getnet.com.br/api#tag/Pagamento%2Fpaths%2F~1v1~1payments~1boleto%2Fpost
