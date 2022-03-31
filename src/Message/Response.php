@@ -106,33 +106,42 @@ class Response extends AbstractResponse
         return strcmp($status, "CANCELED")==0;
     }
 
-    public function getBoleto()//https://www.mercadopago.com.br/developers/pt/guides/online-payments/checkout-api/other-payment-ways
+    public function getBoleto() // https://developers.getnet.com.br/api#tag/Pagamento%2Fpaths%2F~1v1~1payments~1boleto%2Fpost
     {
         $data = $this->getData();
         $boleto = array();
-        $boleto['boleto_url'] = @$data['transaction_details']['external_resource_url'];
-        $boleto['boleto_url_pdf'] = @$data['transaction_details']['external_resource_url'];
-        $boleto['boleto_barcode'] = "";//@$data['transaction_details']['DigitableLine'];//TODO:
-        $boleto['boleto_expiration_date'] = NULL;//@$data['transaction_details']['ExpirationDate'];//TODO:
-        $boleto['boleto_valor'] = (@$data['transaction_details']['total_paid_amount']*1.0);
-        $boleto['boleto_transaction_id'] = @$data['id'];
+        $boleto['boleto_url'] = @$data['boleto']['links'][0]['href']; //'https://api-homologacao.getnet.com.br/v1/payments/boleto/{payment_id}/html'
+        $boleto['boleto_url_pdf'] = @$data['boleto']['links'][0]['href'];  //'https://api-homologacao.getnet.com.br/v1/payments/boleto/{payment_id}/pdf'
+        $boleto['boleto_barcode'] = @$data['boleto']['typeful_line'];
+        $boleto['boleto_expiration_date'] = @$data['boleto']['expiration_date'];
+        $boleto['boleto_valor'] = (@$data['amount']*1.0)/100.0;
+        $boleto['boleto_transaction_id'] = @$data['payment_id'];
         //@$this->setTransactionReference(@$data['transaction_id']);
 
         return $boleto;
     }
 
-    public function getPix() // https://www.mercadopago.com.br/developers/pt/guides/online-payments/checkout-api/receiving-payment-by-pix
+    public function getPix()
     {
         $data = $this->getData();
         $pix = array();
-        $pix['pix_qrcodebase64image'] = @$data['point_of_interaction']['transaction_data']['qr_code_base64'];
-        $pix['pix_qrcodestring'] = @$data['point_of_interaction']['transaction_data']['qr_code'];
-        $pix['pix_valor'] = (@$data['transaction_details']['total_paid_amount']*1.0);
-        $pix['pix_transaction_id'] = @$data['id'];
+        $pix['pix_qrcodebase64image'] = $this->createPixImg(@$data['additional_data']['qr_code']);
+        $pix['pix_qrcodestring'] = @$data['additional_data']['qr_code'];
+        $pix['pix_valor'] = NULL;//(@$data['amount']*1.0)/100.0;
+        $pix['pix_transaction_id'] = @$data['payment_id'];
 
         return $pix;
     }
 
-    //https://developers.getnet.com.br/api#tag/Pagamento%2Fpaths%2F~1v1~1payments~1credit%2Fpost
+    public function createPixImg($pix)
+    {
+        ob_start();
+            QRCode::png($pix, null,'M',5); //https://github.com/renatomb/php_qrcode_pix
+            $imageString = base64_encode( ob_get_contents() );
+        ob_end_clean();
+
+        $base64 = 'data:image/png;base64,' . $imageString;
+        return $base64;
+    }
 
 }

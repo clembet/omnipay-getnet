@@ -336,14 +336,14 @@ abstract class AbstractRequest extends \Omnipay\Common\Message\AbstractRequest
                 //"product_type" => "",//physical_goods, digital_content, digital_goods, digital_physical, cash_carry, gift_card, service
             ],
             "customer" => [
-                "customer_id" = $this->getCustomerId(),
-                "first_name" = $card->getFirstName(),
-                "last_name" = $card->getLastName(),
-                "name" = $card->getName(),
-                "email" = $card->getEmail(),
-                "phone_number" = $card->getPhone(),
-                "document_type" = "CPF",
-                "document_number" = $card->getHolderDocumentNumber(),
+                "customer_id" => $this->getCustomerId(),
+                "first_name" => $card->getFirstName(),
+                "last_name" => $card->getLastName(),
+                "name" => $card->getName(),
+                "email" => $card->getEmail(),
+                "phone_number" => $card->getPhone(),
+                "document_type" => "CPF",
+                "document_number" => $card->getHolderDocumentNumber(),
                 "billing_address" => [
                     "street"=> $customer->getBillingAddress1(),
                     "number"=> $customer->getBillingNumber(),
@@ -354,10 +354,6 @@ abstract class AbstractRequest extends \Omnipay\Common\Message\AbstractRequest
                     "country"=> "Brasil",
                     "postal_code"=> $customer->getBillingPostcode()
                 ],
-            ],
-            "device" => [ // necessário para antifraude
-                "ip_address" => $this->getClientIp(),
-                "device_id" => $this->getSessionId(),
             ],
             "shippings" => [
                 "phone_number" => $card->getPhone(),
@@ -393,11 +389,20 @@ abstract class AbstractRequest extends \Omnipay\Common\Message\AbstractRequest
             ],
         ];
 
+        if(strlen($this->getSessionId())>3)
+        {
+            $data["device"] = [ // necessário para antifraude
+                "ip_address" => $this->getClientIp(),
+                "device_id" => $this->getSessionId(),
+            ];
+        }
+
         return $data;
     }
 
     public function getDataBoleto() //https://developers.getnet.com.br/api#tag/Pagamento%2Fpaths%2F~1v1~1payments~1boleto%2Fpost
     {
+        $this->validate('customer','dueDate');
         //$payer = $this->getPayerData();
         $customer = $this->getCustomer();
 
@@ -412,7 +417,7 @@ abstract class AbstractRequest extends \Omnipay\Common\Message\AbstractRequest
                 ],
                 "boleto"=> [
                   "document_number"=> $customer->getHolderDocumentNumber(),
-                  "expiration_date"=> $this->getDueDate()->date_format("dd/mm/aaaa"),//TODO: formatar data
+                  "expiration_date"=> date('d/m/Y', strtotime($this->getDueDate())),
                   "instructions"=> "Não receber após o vencimento",
                   "provider"=> "santander"
                 ],
@@ -438,12 +443,11 @@ abstract class AbstractRequest extends \Omnipay\Common\Message\AbstractRequest
 
     public function getDataPix() //https://developers.getnet.com.br/api#tag/PIX
     {
-        //$payer = $this->getPayerData();
-        $customer = $this->getCustomer();
+        $this->validate('amount', 'customer_id', 'currency');
 
         $data = [
             "amount"=> $this->getAmountInteger(),
-            "currency"=> "BRL",
+            "currency"=> $this->getCurrency(),
             "order_id"=> $this->getOrderId(),
             "customer_id"=> $this->getCustomerId()
         ];
