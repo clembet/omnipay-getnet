@@ -13,7 +13,7 @@ class CaptureRequest extends AbstractRequest
         //$data = parent::getData();
 
         $data = [
-            "amount"=> $this->getAmountInteger()
+            "amount"=> (int)($this->getAmount()*100.0)
         ];
 
         return $data;

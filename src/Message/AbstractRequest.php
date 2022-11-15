@@ -245,7 +245,7 @@ abstract class AbstractRequest extends \Omnipay\Common\Message\AbstractRequest
 
     public function getShippingPrice()
     {
-        return (int)round((@($this->getParameter('shipping_price')*100.0)), 0);
+        return $this->getParameter('shipping_price');
     }
 
     public function getTransactionID()
@@ -331,7 +331,7 @@ abstract class AbstractRequest extends \Omnipay\Common\Message\AbstractRequest
 
         $data = [
             "seller_id" => $this->getSellerId(),// opcional
-            "amount" => $this->getAmountInteger(),
+            "amount" => (int)($this->getAmount()*100.0),
             "currency" => $this->getCurrency(),
             "order" => [
                 "order_id" => $this->getOrderId(),
@@ -413,7 +413,7 @@ abstract class AbstractRequest extends \Omnipay\Common\Message\AbstractRequest
 
         $data = [
                 "seller_id" => $this->getSellerId(),// opcional
-                "amount" => $this->getAmountInteger(),
+                "amount" => (int)($this->getAmount()*100.0),
                 "currency" => $this->getCurrency(),
                 "order" => [
                     "order_id" => $this->getOrderId(),
@@ -451,7 +451,7 @@ abstract class AbstractRequest extends \Omnipay\Common\Message\AbstractRequest
         $this->validate('amount', 'customer_id', 'currency');
 
         $data = [
-            "amount"=> $this->getAmountInteger(),
+            "amount"=> (int)($this->getAmount()*100.0),
             "currency"=> $this->getCurrency(),
             "order_id"=> $this->getOrderId(),
             "customer_id"=> $this->getCustomerId()
