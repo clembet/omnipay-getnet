@@ -1,5 +1,8 @@
 <?php namespace Omnipay\GetNet\Message;
 
+/*
+    https://developers.getnet.com.br/api#tag/Autenticacao
+ */
 class AccessTokenRequest extends AbstractRequest
 {
     protected $requestMethod = 'POST';
@@ -21,17 +24,16 @@ class AccessTokenRequest extends AbstractRequest
         $method = $this->requestMethod;
         $url = $this->getEndpoint();
         $headers = [
-            'Accept'        => 'application/json, text/plain, */*',
+            //'Accept'        => 'application/json, text/plain, */*',
             'content-type'  => 'application/x-www-form-urlencoded',
-            'Authorization' => 'Basic '.base64_encode($this->getClientId().':'.$this->getClientSecret()),
+            'authorization' => 'Basic '.base64_encode($this->getClientId().':'.$this->getClientSecret()),
         ];
 
         $response = $this->httpClient->request(
             $method,
             $url,
             $headers,
-            //$this->toJSON($data)
-            http_build_query($data, '', '&')
+            http_build_query($data, '', '&')//URL Encodded
         );
 
         if ($response->getStatusCode() != 200 && $response->getStatusCode() != 201 && $response->getStatusCode() != 400) {
